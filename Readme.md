@@ -506,8 +506,8 @@ spring:
     name: RESTAURANT-SERVICE
   datasource:
     url: jdbc:mysql://localhost:3306/restaurantdb
-    username: root
-    password: Diego#91spring
+    username: ""
+    password: ""
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -623,8 +623,21 @@ This will create the required schema for your application.
 
 
 
+#### Summary
 
-### Testing Endpoints
+- **`RestaurantMapper.java`:** Converts between `RestaurantDTO` and `Restaurant` using MapStruct.
+- **`RestaurantDTO.java`:** Data Transfer Object for transferring restaurant data between client and server.
+- **`RestaurantService.java`:** Contains business logic for handling restaurants, including database interactions.
+- **`Restaurant.java`:** Entity class representing the `restaurant` table in the database.
+- **`RestaurantController.java`:** REST controller that exposes endpoints to manage restaurant data.
+- **MapStruct:** A tool for generating mapping code between objects at compile time.
+- **`application.yml`:** Configuration file for setting application properties in a structured manner.
+- **`pom.xml`:** Maven configuration file that defines project dependencies, build configuration, and plugins.
+- **`@EnableEurekaServer`:** Annotation that turns a Spring Boot application into a Eureka server for service discovery.
+
+
+
+#### Testing Endpoints
 
 1. **Add a Restaurant (POST Request):**
 
@@ -684,14 +697,612 @@ This will create the required schema for your application.
    ```
 
 
-### Summary
+### User Details Microservice
 
-- **`RestaurantMapper.java`:** Converts between `RestaurantDTO` and `Restaurant` using MapStruct.
-- **`RestaurantDTO.java`:** Data Transfer Object for transferring restaurant data between client and server.
-- **`RestaurantService.java`:** Contains business logic for handling restaurants, including database interactions.
-- **`Restaurant.java`:** Entity class representing the `restaurant` table in the database.
-- **`RestaurantController.java`:** REST controller that exposes endpoints to manage restaurant data.
-- **MapStruct:** A tool for generating mapping code between objects at compile time.
-- **`application.yml`:** Configuration file for setting application properties in a structured manner.
-- **`pom.xml`:** Maven configuration file that defines project dependencies, build configuration, and plugins.
-- **`@EnableEurekaServer`:** Annotation that turns a Spring Boot application into a Eureka server for service discovery.
+
+This Microservice handles user information like its id, name, password,  address where to deliver the food etc. 
+
+
+Tech stack used 
+
+* Microservice architecture
+* Rest APIs
+* Java 22
+* MySql Relational DB as Datasource
+* Spring Boot 
+* Lombok
+* Eureka Client
+* mapstruct
+
+Generate from start.spring.io:
+* Project: Mavin
+* Language: Java
+* Spring Boot: 3.3.3
+* Project Metadata
+  * Group: com.codedecode
+  * Artifact: userinfo
+  * Name: UserInformation
+  * Description: Demo project for Spring Boot User Details MS
+  * Package name: com.codedecode.userinfo
+  * Packaging: Jar
+  * Java: 22
+* Dependencies:
+  * Lombok
+  * Spring Web
+  * Spring Data JPA
+  * MySQL Driver
+  * Eureka Discovery Client
+  * Later add MapStruct
+* Generate
+
+in pom.xml, add MapStruct
+```xml
+...
+        <dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.5.5.Final</version>
+		</dependency>
+```
+
+in build, add plugin for mapstruct
+
+```xml
+...
+        <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>1.18.34</version>
+						</path>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>1.5.5.Final</version>
+						</path>
+
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+```
+
+
+Packages:
+
+* controller
+* dto
+* entity
+* repo
+* service
+* mapper
+
+For Application.yml: 
+
+* server port: 9093 . Please note different ports for different microservices.
+* Configure Eureka client
+* Application name configuration.
+* Link to user database
+
+Make sure you `CREATE SCHEMA userdb;`
+
+```yml
+server:
+  port: 9093
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: USER-SERVICE
+  datasource:
+    url: jdbc:mysql://localhost:3306/userdb
+    password: ""
+    username: ""
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+Run Eureka server in a seperate IDE, then run Then run the application.
+
+Test in Postman was successful.
+Run `http://localhost:8761/`and see if Microservices are registered successfully. This was registered successfully.
+
+
+### Food Catalogue Listing
+
+On Front end page where all restaurants are listed , when we select 1 restaurant, Ll its food menu is shown. Also restaurant details , address etc too is shown. 
+
+* Food Catalogue Microservice is responsible to-
+    * List **all food items list of that particular Restaurant** and 
+    * **Complete Restaurant Details** too on the front end Page / UI
+
+
+Tech stack used 
+
+* Microservice architecture
+* Rest APIs
+* Java 22
+* MySql Relational DB as Datasource
+* Spring Boot 
+* Lombok
+* Eureka Client
+* mapstruct
+
+Generate from start.spring.io:
+* Project: Mavin
+* Language: Java
+* Spring Boot: 3.3.3
+* Project Metadata
+  * Group: com.codedecode
+  * Artifact: userinfo
+  * Name: UserInformation
+  * Description: Demo project for Spring Boot User Details MS
+  * Package name: com.codedecode.userinfo
+  * Packaging: Jar
+  * Java: 22
+* Dependencies:
+  * Lombok
+  * Spring Web
+  * Spring Data JPA
+  * MySQL Driver
+  * Eureka Discovery Client
+  * Later add MapStruct
+* Generate
+
+
+Packages:
+
+* controller
+* dto
+* entity
+* repo
+* service
+* mapper
+
+
+in `pom.xml`, add Mapstruct and plugind
+s
+```xml
+    <dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+			<version>1.5.5.Final</version>
+		</dependency>
+
+    ...
+
+    <plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>1.18.34</version>
+						</path>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>1.5.5.Final</version>
+						</path>
+
+					</annotationProcessorPaths>
+				</configuration>
+			</plugin>
+```
+
+in `FoodItem.java`. Quantity of the food item is initialized zero, as when you enter a supermarket, you have not selected a quantity.
+
+```java
+package com.codedecode.foodcatalogue.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class FoodItem {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private int id;
+
+    private String itemName;
+
+    private String itemDescription;
+
+    private  boolean isVeg;
+
+    private Number price;
+
+    private  Integer restaurantId;
+
+    @Column(nullable = false, columnDefinition = "INT DEFAULT 0")
+    private Integer quantity;
+}
+
+```
+
+In DTO package, create `FoodItemDTO.java` which is our Data Transfer object for the entity FoodItem.java.
+
+`FoodItemDTO.java`
+```java
+package com.codedecode.foodcatalogue.dto;
+
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class FoodItemDTO {
+
+    private int id;
+
+    private String itemName;
+
+    private String itemDescription;
+
+    private  boolean isVeg;
+
+    private Number price;
+
+    private  Integer restaurantId;
+    private Integer quantity;
+}
+
+```
+
+
+Also create a restaurant DTO in `Foodcatalogue Microservice` which will be used to fetch response from `Restaurant` entity's `restaurantlisting microservice`
+
+So this is a data transfer from restaurant microservice to food catalogue microservice.
+`Restaurant.java`
+```java
+package com.codedecode.foodcatalogue.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Restaurant {
+    
+    private int id;
+    private String name;
+    private String address;
+    private String city;
+    private String restaurantDescription;
+}
+
+```
+
+
+
+
+next `FoodCataloguePage.java`
+Responsible for showing all the food Item list and restaurant details on the frontend.
+
+```java
+package com.codedecode.foodcatalogue.dto;
+
+import com.codedecode.foodcatalogue.entity.FoodItem;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+
+
+public class FoodCataloguePage {
+
+    private List<FoodItem> foodItemsList;
+
+    private Restaurant restaurant;
+}
+
+```
+
+Mapper
+
+Mapping between FoodItem.java and FoodItemDTO.java
+`FoodItemMapper.java`
+```java
+package com.codedecode.foodcatalogue.mapper;
+
+import com.codedecode.foodcatalogue.dto.FoodItemDTO;
+import com.codedecode.foodcatalogue.entity.FoodItem;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+@Mapper
+public interface FoodItemMapper {
+
+    FoodItemMapper INSTANCE = Mappers.getMapper(FoodItemMapper.class);
+
+    FoodItem mapFoodItemDTOToFoodItem(FoodItemDTO foodItemDTO);
+
+    FoodItemDTO mapFoodItemToFoodItemDto(FoodItem foodItem);
+}
+
+```
+
+To fetch a retaurant details from another microservice, we need a rest template.
+so got to `FoodCatalogueMicroserviceApplication`
+create `@Bean`. Assuming we have 3 instances making  request, which of these three should this rest template go and hit and get our data, so it should be `@LoadBalanced`, because there can be multiple instances of the `restaurantlisting` microservice.
+
+Now `Eureka` will find the instance that is not so busy and is available to quickly respond your request. 
+
+make sure you `Autowired` `RestTemplate` in `FoodCatalogueService.java`
+
+
+
+
+`FoodCatalogueMicroserviceApplication`
+```java
+package com.codedecode.foodcatalogue;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+public class FoodCatalogueMicroserviceApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(FoodCatalogueMicroserviceApplication.class, args);
+	}
+
+	@Bean
+	@LoadBalanced
+	public RestTemplate getRestTemplate(){
+		return new RestTemplate();
+	}
+}
+
+```
+![Eureka server](images/1.%20Eureka-displaying-services.png)
+
+
+The `restaurantlisting` runs at port `9091` at `fetchById/{id}` path apply in `fetchRestaurantDetailsFromRestaurantMS`, 
+But we are going to use the `restaurantlisting` Microservice name in `application.yml` which is `RESTAURANTLISTING`. So create url in a load balanced way.
+
+also in `fetchRestaurantDetailsFromRestaurantMS(Integer restaurantId)` we use getForObject,to get info for url: `"http://RESTAURANTLISTING/restaurant/fetchById/"+restaurantId` and map it to the retaurant DTO in our application. 
+`FoodCatalogueService.java`
+```java
+package com.codedecode.foodcatalogue.service;
+
+import com.codedecode.foodcatalogue.dto.FoodCataloguePage;
+import com.codedecode.foodcatalogue.dto.FoodItemDTO;
+import com.codedecode.foodcatalogue.dto.Restaurant;
+import com.codedecode.foodcatalogue.entity.FoodItem;
+import com.codedecode.foodcatalogue.mapper.FoodItemMapper;
+import com.codedecode.foodcatalogue.repo.FoodItemRepo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+import java.util.List;
+
+@Service
+public class FoodCatalogueService {
+
+    @Autowired
+    FoodItemRepo foodItemRepo;
+
+    @Autowired
+    RestTemplate restTemplate;//LoadBalanced restTemplate
+
+    public FoodItemDTO addFoodItem(FoodItemDTO foodItemDTO) {
+        FoodItem foodItemSavedInDB= foodItemRepo.save(FoodItemMapper.INSTANCE.mapFoodItemDTOToFoodItem(foodItemDTO));
+        return  FoodItemMapper.INSTANCE.mapFoodItemToFoodItemDto(foodItemSavedInDB);
+    }
+
+    public FoodCataloguePage fetchFoodCataloguePageDetails(Integer restaurantId) {
+
+        // We need 2 things
+        // food item list
+        List<FoodItem> foodItemList = fetchFoodItemList(restaurantId);
+
+        //restaurantdetails
+        Restaurant restaurant = fetchRestaurantDetailsFromRestaurantMS(restaurantId);
+
+        return createFoodCataloguePage(foodItemList,restaurant);
+
+
+    }
+
+    /**
+     * Merge 2 responses from fetchRestaurant...() and fetchFoodItemList(..) as
+     * one food catalog page
+     * @param foodItemList
+     * @param restaurant
+     */
+    private FoodCataloguePage createFoodCataloguePage(List<FoodItem> foodItemList, Restaurant restaurant) {
+        FoodCataloguePage foodCataloguePage =new FoodCataloguePage();
+        foodCataloguePage.setFoodItemsList(foodItemList);
+        foodCataloguePage.setRestaurant(restaurant);
+        return foodCataloguePage;
+    }
+
+    /**
+     * Goes to the restaurantlisting microservice and get details
+     * @param restaurantId
+     * @return
+     */
+    private Restaurant fetchRestaurantDetailsFromRestaurantMS(Integer restaurantId) {
+        return restTemplate.getForObject("http://RESTAURANTLISTING/restaurant/fetchById/"+restaurantId,Restaurant.class);//As seen in Eureka, RESTAURANTLISTING.  Eureka will figure this path out.
+
+    }
+
+    /**
+     * Go hit the database and get the list of food items of a restaurant
+     * @param restaurantId
+     * @return
+     */
+    private List<FoodItem> fetchFoodItemList(Integer restaurantId) {
+        return foodItemRepo.findByRestaurantId(restaurantId);
+    }
+}
+
+```
+
+in controller package
+`FoodCatalogueController.java`
+```java
+package com.codedecode.foodcatalogue.controller;
+
+import com.codedecode.foodcatalogue.dto.FoodCataloguePage;
+import com.codedecode.foodcatalogue.dto.FoodItemDTO;
+import com.codedecode.foodcatalogue.repo.FoodItemRepo;
+import com.codedecode.foodcatalogue.service.FoodCatalogueService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/foodCatalogue")
+public class FoodCatalogueController {
+
+    @Autowired
+    FoodCatalogueService foodCatalogueService;
+
+
+    @PostMapping("/addFoodItem")
+    public ResponseEntity<FoodItemDTO> addFoodItem(@RequestBody FoodItemDTO foodItemDTO){
+        FoodItemDTO foodItemSaved = foodCatalogueService.addFoodItem(foodItemDTO);
+        return new ResponseEntity<>(foodItemSaved, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/fetchRestaurantAndFoodItemsById/{restaurantId}")
+    public ResponseEntity<FoodCataloguePage> fetchRestaurantDetailsWithFoodMenu(@PathVariable Integer restaurantId){
+        FoodCataloguePage foodCataloguePage = foodCatalogueService.fetchFoodCataloguePageDetails(restaurantId);
+        return new ResponseEntity<>(foodCataloguePage,HttpStatus.OK);
+    }
+}
+
+```
+
+
+in application.yml
+```yml
+server:
+  port: 9092
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: FOOD-CATALOGUE-SERVICE
+  datasource:
+    url: jdbc:mysql://localhost:3306/foodcataloguedb
+    password: ""
+    username: ""
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+Create a database:
+```sql
+CREATE database foodcataloguedb;
+```
+
+Then run, start the Eureka server first, then  run foodcatalogue microservice.
+
+Check mysql workbench, you will see 2 tables there. `food_item`and `food_item_seq`
+
+Go to eureka server's `localhost:8761`then check for registered service.
+
+![Eureka](images/1.%20Eureka-displaying-services.png)
+
+You will see `FOODCATALOGUEMICROSERVICE`.
+
+#### Testing
+
+Go to postman and add items.
+1. POST: `http://localhost:9092/foodCatalogue/addFoodItem`
+
+```json
+{
+    "itemName": "Dal Fry",
+    "itemDescription": "Lentils cooked with mixed spices",
+    "veg": true,
+    "price": 350,
+    "restaurantId": 1,
+    "quantity": 0
+
+}
+```
+
+It was a success.
+
+2. GET: `http://localhost:9092/foodCatalogue/fetchRestaurantAndFoodItemsById/1`
+
+Output:
+
+```json
+{
+    "foodItemsList": [
+        {
+            "id": 1,
+            "itemName": "Dal Fry",
+            "itemDescription": "Lentils cooked with mixed spices",
+            "price": 350,
+            "restaurantId": 1,
+            "quantity": 0,
+            "veg": true
+        }
+    ],
+    "restaurant": {
+        "id": 1,
+        "name": "Restaurant 1",
+        "address": "Address line 1",
+        "city": "Nürnberg",
+        "restaurantDescription": "Restaurant Description"
+    }
+}
+```
+
+### Order Microservice
+
+
