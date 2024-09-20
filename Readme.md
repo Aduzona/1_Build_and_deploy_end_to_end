@@ -821,6 +821,11 @@ Run Eureka server in a seperate IDE, then run Then run the application.
 Test in Postman was successful.
 Run `http://localhost:8761/`and see if Microservices are registered successfully. This was registered successfully.
 
+Data saved
+![Userdb](images/6_userdb_MySQL.png)
+
+Please note, there was no Hashing and Salting done to this password stored in the database. And passwords used was random thus a placehoder before Hashing and salting is applied.
+
 
 ### Food Catalogue Listing
 
@@ -1305,4 +1310,468 @@ Output:
 
 ### Order Microservice
 
+
+**Tech Stack**
+
+* When we Hit OrderNow button,  the order details and user id reached backed, This MS  saves all order details like 
+  * Food items list
+  * Restaurant details
+  * User Information
+
+* Tech stack used 
+
+  * Microservice architecture
+  * Rest APIs
+  * Java 23
+  * Mongo DB as Datasource
+  * Spring Boot
+  * Lombok
+  * Eureka Client
+
+Note we changed datasource to mongoDB
+* Install MongoDB and Compass.
+* Compass is one way of seeing all the documents in your MongoDB connection.
+
+Order MS
+
+All will have order id as key
+* Restaurant Detals
+* User Details
+* Food Item list
+
+If we are using relational database,
+* We will join , user_id, restaurant id, with order id, this will seem complecated.
+* But in mongodb, its simpler.
+You can have one big document nosql doc, a JSON document, where:
+
+```json
+{
+  order id: 1
+  restaurant {
+    rid
+    desc
+  }
+  food item {}
+  user detail {}
+}
+```
+  * So no foreign key, 
+  * no joins.
+  * no need to maintain multiple tables.
+
+Project : Maven
+
+Spring Boot: 3.3.4
+
+Packaging: Jar
+
+Java: 23
+
+Dependencies:
+  * Lombok
+  * Spring Web
+  * Spring Data MongoDB
+  * Eureka Discovery Client
+
+
+Packages:
+* controller
+* dto
+* entity
+* repo
+* service
+
+Create a dto that we will be getting from the `frontend` and from the `user details microservice`
+
+This will be the exact DTO `RestaurantDTO ` as the `restaurantlisting` microservice.
+
+Restaurant.java:
+```java
+package com.codedecode.order.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Restaurant {
+    private int id;
+    private String name;
+    private String city;
+    private String restaurantDescription;
+}
+
+```
+
+Next, we need the list of food Items.
+Should be exactly similar to `foodcatalogue Microservice` DTO.
+
+
+These 3 DTOs are saved in the database which are:  FoodItemDTO is the list coming from the frontend, the Restaurant  DTO and userDTO.
+
+
+OrderDTO comming from frontend.
+
+```java
+package com.codedecode.order.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class OrderDTO {
+
+    private List<FoodItemsDTO> foodItemsList;
+    private Integer userId;
+    private Restaurant restaurant;
+
+}
+
+```
+
+We need tp generate the order ID automatically and save it in the MongoDB document. But now MongoDB does not generate sequence table like MySQL., so create a sequence generator for each order saved.
+
+In the `entity` package, the only thing we need to save it Order. and it is going to be saved with orderId.
+
+We need `@Document("order")` for mongodb.
+We will also have restaurant information and UserDTO as well.
+
+3 inner JSONS:
+```java
+private List<FoodItemsDTO> foodItemsList;
+    private Restaurant restaurant;
+    private UserDTO userDTO;
+
+```
+
+```java
+package com.codedecode.order.entity;
+
+import com.codedecode.order.dto.FoodItemsDTO;
+import com.codedecode.order.dto.Restaurant;
+import com.codedecode.order.dto.UserDTO;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Document("order")
+public class Order {
+    private  Integer orderId;
+    private List<FoodItemsDTO> foodItemsList;
+    private Restaurant restaurant;
+    private UserDTO userDTO;
+
+}
+
+```
+
+**repo**
+
+Lets start creating repositories, mongo repository:
+
+```java
+package com.codedecode.order.repo;
+
+import com.codedecode.order.entity.Order;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface OrderRepo extends MongoRepository<Order,Integer> {
+}
+
+```
+
+**service**
+
+**controller**
+
+OrderDTO does not contain user information, so we rename this `OrderDTO`to `OrderDTOFromFE` thus From FrontEnd.
+
+Now we need a orderDTO that is going to return when exact order is saved in the DB.
+So we create `OrderDTO` which is true replication of Order.java in entity.
+continue `controller`:
+
+What we are getting from frontend are here: `OrderDTOFromFE orderDetails`, next, save in DB.
+
+```java
+package com.codedecode.order.controller;
+
+import com.codedecode.order.dto.OrderDTO;
+import com.codedecode.order.dto.OrderDTOFromFE;
+import com.codedecode.order.service.OrderService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/order")
+public class OrderController {
+
+    @Autowired
+    OrderService orderService;
+
+    @PostMapping("/saveOrder")
+    public ResponseEntity<OrderDTO> saveOrder(@RequestBody OrderDTOFromFE orderDetails){
+        OrderDTO orderSavedInDB =orderService.saveOrderInDb(orderDetails);
+        return  new ResponseEntity<>(orderSavedInDB, HttpStatus.CREATED);
+    }
+}
+
+```
+Next add list of items and restaurant  from OrderDTOFromFE.
+
+Create entity Sequence:
+
+``Sequence.java`:
+```java
+package com.codedecode.order.entity;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "sequence")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Sequence {
+    @Id
+    private String id;
+    private int sequence;
+}
+
+```
+
+Now we need `SequenceGenerator.java`.
+
+```java
+package com.codedecode.order.service;
+
+import com.codedecode.order.entity.Sequence;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
+import org.springframework.data.mongodb.core.MongoOperations;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
+import org.springframework.stereotype.Service;
+import static org.springframework.data.mongodb.core.query.Criteria.where;
+
+
+
+@Service
+public class SequenceGenerator {
+
+    @Autowired
+    MongoOperations mongoOperations;
+
+    public int generateNextOrderId(){
+        Sequence counter= mongoOperations.findAndModify(
+                Query.query(where("_id").is("sequence")),
+                new Update().inc("sequence", 1),
+                FindAndModifyOptions.options().returnNew(true).upsert(true),
+                Sequence.class
+        );
+        return  counter.getSequence();
+    }
+}
+
+```
+
+findAndModify takes 4 things: 
+* Query, 
+* Update which is the sequence key in sequence entity, 
+* Options, the modified documents has to be returned
+* Entity class which is the sequence.
+
+Not, `generateNextOrderId` gets sequence id.
+see the powerpoint. 
+
+Now in `OrderService`:
+
+```java
+
+package com.codedecode.order.service;
+
+import com.codedecode.order.dto.OrderDTO;
+import com.codedecode.order.dto.OrderDTOFromFE;
+import com.codedecode.order.dto.UserDTO;
+import com.codedecode.order.entity.Order;
+import com.codedecode.order.mapper.OrderMapper;
+import com.codedecode.order.repo.OrderRepo;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+
+@Service
+public class OrderService {
+
+    @Autowired
+    OrderRepo orderRepo;
+
+    @Autowired
+    SequenceGenerator sequenceGenerator;
+
+    @Autowired
+    RestTemplate restTemplate;
+
+    public OrderDTO saveOrderInDb(OrderDTOFromFE orderDetails) {
+        Integer newOrderID= sequenceGenerator.generateNextOrderId();
+        UserDTO userDTO = fetchUserDetailsFromUserId(orderDetails.getUserId());//null;
+        Order orderToBeSaved = new Order(newOrderID, orderDetails.getFoodItemsList(),orderDetails.getRestaurant(),userDTO);
+        orderRepo.save(orderToBeSaved);
+        return OrderMapper.INSTANCE.mapOrderToOrderDTO(orderToBeSaved);
+
+    }
+
+
+    private UserDTO fetchUserDetailsFromUserId(Integer userId){
+        return restTemplate.getForObject("http://USERINFORMATION/user/fetchUserById/"+userId,UserDTO.class);//http://USER-SERVICE/user/fetchUserById/
+    }
+
+}
+
+```
+
+in `restTemplate.getForObject("http://USERINFORMATION/user/fetchUserById/"+userId,UserDTO.class);` url name `USERINFORMATION` was copied from pom.xml name all capitalized, you can also copy the name as it is registered in Eureka server.
+
+In `Order orderToBeSaved = new Order(newOrderID, orderDetails.getFoodItemsList(),orderDetails.getRestaurant(),userDTO);`
+We need to detch order details from userID. 
+
+to get user details, we need a loadbalanced bean for restTemplate:
+
+```java
+package com.codedecode.order;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
+import org.springframework.context.annotation.Bean;
+import org.springframework.web.client.RestTemplate;
+
+@SpringBootApplication
+public class OrderMsApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(OrderMsApplication.class, args);
+	}
+
+	@Bean
+	@LoadBalanced
+	public RestTemplate getRestTemplate(){
+		return  new RestTemplate();
+	}
+}
+
+```
+
+`return OrderMapper.INSTANCE.mapOrderToOrderDTO(orderToBeSaved);` Shows that you need a mapper. 
+
+OrderMapper.java:
+```java
+package com.codedecode.order.mapper;
+
+import com.codedecode.order.dto.OrderDTO;
+import com.codedecode.order.entity.Order;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+@Mapper
+public interface OrderMapper {
+
+    OrderMapper INSTANCE = Mappers.getMapper(OrderMapper.class);
+
+    Order mapOrderDTOToOrder(OrderDTO orderDTO);
+    OrderDTO mapOrderToOrderDTO(Order order);
+}
+
+```
+
+Next `application.yml`:
+```yml
+server:
+  port: 9094
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+
+  application:
+    name: ORDER-SERVICE
+  data:
+    mongodb:
+      url: mongodb://localhost:27017/orderdb
+      host: localhost
+      port: 27017
+      database: orderdb
+      repositories:
+        enabled: true
+```
+run eureka server first,  add other microservices and other microservices:
+
+![All Microservices](images/2_Eureka_all_Microservices.png)
+
+Open Mongodb compass, as you can see, the database is not created. 
+Open MongoDb compass, click plus sign and add connection. 
+
+Open Postman, to Test REST APIs.
+POST:` http://localhost:9094/order/saveOrder` click send
+```json
+{
+    "foodItemsList":[
+        {
+            "id":1,
+            "itemName": "Dal FRY",
+            "itemDescription": "Lentils cooked with mixed spices",
+            "veg": true,
+            "price": 350,
+            "restaurantId": 1,
+            "quantity": 0
+        }
+    ],
+    "restaurant": {
+        "id": 1,
+        "name": "Restaurant 1",
+        "name": "Address line 1",
+        "city": "Nürnberg",
+        "restaurantDescription": "Restaurant Description"
+    },
+    "userId":1
+}
+```
+
+![Order Service Postman](images/3_POST_orderService.png)
+
+Go to MongoDB and Refresh: `localhost:27017`.
+
+![Sequence MongoDB](images/4_Sequence_MongoDB.png)
+
+![Order MongoDB](images/5_Order_MongoDB.png)
+
+As seen above, data for userDTO was also fetched from MySQL.
+
+for refresh, see userdb:
+![Userdb](images/6_userdb_MySQL.png)
+
+Please note, there was no Hashing and Salting done to this password stored in the database. And passwords used was random thus a placehoder before Hashing and salting is applied.
 
