@@ -1,18 +1,13 @@
-server:
-  port: 9092
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
 
-logging:
-  level:
-    org.hibernate: DEBUG
-    org.hibernate.type: TRACE
 spring:
-  cache:
-    type: none
-  profiles:
-    active: dev
-  application:
-    name: FOOD-CATALOGUE-SERVICE
   datasource:
+    url: jdbc:mysql://localhost:3306/foodcataloguedb
+    password: Diego#91spring
+    username: root
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

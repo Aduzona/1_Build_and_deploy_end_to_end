@@ -3277,3 +3277,1096 @@ It runs very well, I will now put this application in a folder. The use its copy
 
 ## All about Docker and Dockerization of food delivery application.
 
+Our Backend services includes:
+1. Eureka for discovery
+2. Restaurant listing service: List all the restaurant in my area
+3. Food catalog service to  list all the food items available in that restaurant.
+4. Order service: When you plce your order
+5. User service to give user information to you.
+
+So in all these 5 applications, we are going to add a docker image.
+* For Frontend, Food delivery application, we are also going to add a docker image.
+
+Total of 6 docker images.
+
+### Eureka Dockerfile
+
+I need to use JDK 22 instead of JDK 11. Here’s a breakdown of my Dockerfile and the steps to change the JDK version.
+
+#### Generating the `.jar` with Maven
+
+To package your application into a `.jar` file with Maven, run the following command in your project directory:
+
+```bash
+mvn clean package
+```
+
+This will create a `.jar` file in the `target` directory, which will then be used in the Docker build process.The file generated is `eureka-0.0.1-SNAPSHOT.jar`
+
+#### Explanation of the Current Dockerfile
+
+```dockerfile
+FROM adoptopenjdk/openjdk11:jdk-11.0.2.9-slim
+WORKDIR /opt
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar app.jar
+```
+
+1. **FROM adoptopenjdk/openjdk11:jdk-11.0.2.9-slim**: This line specifies the base image, which currently uses OpenJDK 11. To update it for Java 22, you'll need to use an appropriate OpenJDK 22 image.
+  
+2. **WORKDIR /opt**: Sets the working directory to `/opt` within the container, where your application will run.
+
+3. **COPY target/*.jar /opt/app.jar**: Copies the compiled `.jar` file from your `target` directory on the host to the container’s `/opt` directory, naming it `app.jar`.
+
+4. **ENTRYPOINT exec java $JAVA_OPTS -jar app.jar**: Starts the application by running `java` with any environment options defined in `$JAVA_OPTS`.
+
+#### Changing the Dockerfile to Use JDK 22
+
+1. Replace the base image with one that uses JDK 22. For instance:
+
+   ```dockerfile
+   FROM eclipse-temurin:22-jre  # Using an OpenJDK 22 image from Eclipse Temurin
+   ```
+
+2. Update the rest of the file as needed (most of it will remain the same):
+
+```dockerfile
+FROM eclipse-temurin:22-jre  #Using an OpenJDK 22 image from Eclipse Temurin
+WORKDIR /opt
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar /opt/app.jar
+
+```
+
+
+### Restaurant listing Microservice Dockerfile
+
+Similar thing here:
+
+#### Generating the `.jar` with Maven
+
+To package your application into a `.jar` file with Maven, run the following command in your project directory:
+
+```bash
+mvn clean package
+```
+
+This will create a `.jar` file in the `target` directory, which will then be used in the Docker build process.The file generated is `restaurantlisting-0.0.1-SNAPSHOT.jar`
+
+```dockerfile
+FROM eclipse-temurin:22-jre  #Using an OpenJDK 22 image from Eclipse Temurin
+WORKDIR /opt
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar /opt/app.jar
+```
+
+
+### Foodcatalogue Microservice Dockerfile
+
+Similar thing here:
+
+#### Generating the `.jar` with Maven
+
+To package your application into a `.jar` file with Maven, run the following command in your project directory:
+
+```bash
+mvn clean package
+```
+
+This will create a `.jar` file in the `target` directory, which will then be used in the Docker build process.The file generated is `foodcatalogue-0.0.1-SNAPSHOT.jar`
+
+```dockerfile
+FROM eclipse-temurin:22-jre  #Using an OpenJDK 22 image from Eclipse Temurin
+WORKDIR /opt
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar /opt/app.jar
+```
+
+
+### Order Microservice Dockerfile
+
+Similar thing here:
+
+#### Generating the `.jar` with Maven
+
+To package your application into a `.jar` file with Maven, run the following command in your project directory:
+
+```bash
+mvn clean package
+```
+
+
+This will create a `.jar` file in the `target` directory, which will then be used in the Docker build process.The file generated is `order-0.0.1-SNAPSHOT.jar`
+
+```dockerfile
+FROM eclipse-temurin:22-jre  #Using an OpenJDK 22 image from Eclipse Temurin
+WORKDIR /opt
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar /opt/app.jar
+```
+
+
+
+### User Information Microservice Dockerfile
+
+Similar thing here:
+
+#### Generating the `.jar` with Maven
+
+To package your application into a `.jar` file with Maven, run the following command in your project directory:
+
+```bash
+mvn clean package
+```
+
+
+This will create a `.jar` file in the `target` directory, which will then be used in the Docker build process.The file generated is `userinfo-0.0.1-SNAPSHOT.jar`
+
+```dockerfile
+FROM eclipse-temurin:22-jre  #Using an OpenJDK 22 image from Eclipse Temurin
+WORKDIR /opt
+COPY target/*.jar /opt/app.jar
+ENTRYPOINT exec java $JAVA_OPTS -jar /opt/app.jar
+```
+### Alternatively to generate jar:
+
+
+in Maven, run `mvn clean install`, this will create jar for target folder.
+
+### Create Docker file for Frontend Application
+
+Angular front-end is called `food-delivery-app`.
+
+```Dockerfile
+# Stage 1: Build the Angular app
+FROM node:16 as build
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
+
+# Stage 2: Serve the Angular app using Nginx
+FROM nginx:alpine
+COPY --from=build /app/dist/food-delivery-app /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+This Dockerfile is set up to build and serve an Angular frontend application called `food-delivery-app`. It uses a multi-stage build to optimize the final image, keeping it lightweight. Here’s a breakdown of each stage:
+
+#### Stage 1: Build the Angular App
+This stage uses a Node.js environment to compile the Angular app.
+
+```dockerfile
+FROM node:16 as build
+```
+- **FROM node:16 as build**: This uses the Node.js version 16 image and labels it as `build` for referencing in later stages.
+  
+```dockerfile
+WORKDIR /app
+```
+- **WORKDIR /app**: Sets the working directory to `/app` in the container, where all subsequent commands will run.
+
+```dockerfile
+COPY package*.json ./
+RUN npm install
+```
+- **COPY package*.json ./**: Copies `package.json` and `package-lock.json` files to the container. This is done first to utilize Docker caching for dependency installation.
+- **RUN npm install**: Installs all dependencies listed in `package.json`.
+
+```dockerfile
+COPY . .
+RUN npm run build
+```
+- **COPY . .**: Copies the entire project into the `/app` directory within the container.
+- **RUN npm run build**: Runs the Angular build command, which compiles the app into static files and outputs them into the `dist/food-delivery-app` directory.
+
+#### Stage 2: Serve the Angular App Using Nginx
+This stage uses Nginx to serve the built static files, creating a lightweight final image that doesn't include Node.js.
+
+```dockerfile
+FROM nginx:alpine
+```
+- **FROM nginx:alpine**: Uses the `alpine` version of Nginx, a lightweight version suitable for serving static files.
+
+```dockerfile
+COPY --from=build /app/dist/food-delivery-app /usr/share/nginx/html
+```
+- **COPY --from=build /app/dist/food-delivery-app /usr/share/nginx/html**: Copies the static files from the `build` stage to the Nginx default HTML directory, so Nginx can serve the Angular app.
+
+```dockerfile
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
+```
+- **EXPOSE 80**: Exposes port 80, allowing the app to be accessed via HTTP.
+- **CMD ["nginx", "-g", "daemon off;"]**: Starts Nginx in the foreground, keeping the container running.
+
+#### Summary
+
+1. **Stage 1** builds the Angular app.
+2. **Stage 2** uses Nginx to serve the built files efficiently, resulting in a smaller, production-ready container.
+
+
+### Now build all images
+
+* Run Docker desktop
+* Docker build -t **codedecode25/app-name:0.0.1**  .
+* 0.0.2 means version
+* . represents current director
+* Apps can be `- restaurant-listing-service`, `order-service` etc. All lower case segregated by a hyphen for better readability
+
+Lets start from Eureka:
+* namespace in docker hub: `aduzona`
+* app-name eureka-server: `Docker build -t aduzona/food-delivery-eureka-server:0.0.1  .`
+* Log in to Docker Hub using:
+  * `docker login`
+* Push image: `Docker push aduzona/food-delivery-eureka-server:0.0.1`
+
+Restaurant listing:
+* Build: `Docker build -t aduzona/food-delivery-restaurant-listing-service:0.0.1  .`
+* Push image: `Docker push aduzona/food-delivery-restaurant-listing-service:0.0.1`
+
+Food catalogue service:
+
+* Build: `Docker build -t aduzona/food-delivery-food-catalogue-service:0.0.1  .`
+* Push it: `Docker push aduzona/food-delivery-food-catalogue-service:0.0.1`
+
+Order Service:
+
+* Build image: `Docker build -t aduzona/food-delivery-order-service:0.0.1  .`
+* Push it: `Docker push aduzona/food-delivery-order-service:0.0.1`
+
+User info service:
+
+* Build image: `Docker build -t aduzona/food-delivery-user-service:0.0.1  .`
+* Push it: `Docker push aduzona/food-delivery-user-service:0.0.1`
+
+Angular App:
+
+* Build image: `Docker build -t aduzona/food-delivery-app-frontend:0.0.1  .`
+* Push it: `Docker push aduzona/food-delivery-app-frontend:0.0.1`
+
+## Spring boot profiling
+
+Spring boot profiling configure application based on the environemnt.
+
+remember urls changes as you move an application. will we keep on chnging urls everytime we deploy to a different environment. e.g http://localhost:8761/eureka/ will keep on changing.
+
+Suppose I have an environemnt like dev, then once it is passed from dev it goes to test, then to prod. you keep on cahnging this properties, thats nt a good idea.
+
+Spring Boot profiling is a feature that allows you to segregate parts of your application configuration and make them available only in certain environments. This is particularly useful when you want to have different configurations for development, testing, and production environments.
+
+Here are some key points about Spring Boot profiling:
+
+1. **Profiles**: Profiles are a way to group beans and configurations that should only be active in specific environments. For example, you can have a `dev` profile for development, a `test` profile for testing, and a `prod` profile for production
+2. **@Profile Annotation**: You can use the `@Profile` annotation to specify which beans should be loaded for a particular profile. For example, a bean annotated with `@Profile("dev")` will only be loaded when the `dev` profile is active
+3. **Activating Profiles**: Profiles can be activated in various ways, such as through the `spring.profiles.active` property in the `application.properties` file, as a JVM argument, or programmatically within your application
+4. **Default Profile**: If no profile is explicitly activated, Spring Boot will use the default profile. You can specify the default profile using the `spring.profiles.default` property.
+5. **Profile-Specific Properties**: You can have profile-specific properties files, such as `application-dev.properties` and `application-prod.properties`, which contain configuration settings specific to each profile
+
+Spring Boot profiling helps you manage different configurations for different environments, making your application more flexible and easier to maintain.
+
+How Profiling works:
+
+* **Configuration Files**: Spring Boot allows you to define multiple configuration files, each associated with a specific profile. These files are typically named `application-{profile}.properties` or `application-{profile}.yml`, where {profile} is the name of the profile.
+
+* **Application Properties**: Inside **each profile-specific configuration file, you can specify different properties based on your requirements**. These properties can include database connection details, logging settings, cache configurations, and any other application-specific configurations.
+
+* **Activating Profiles**: You can activate a specific profile by setting the `spring.profiles.active` property. This can be done in various ways, such as by **setting an environment variable, using the -D flag when running the application**, or programmatically in code.
+For example, to activate the development profile, you can set `spring.profiles.active=development`.
+
+in application.yml, are just common configurations.
+
+### RestaurantListing Springboot
+
+application.yml:
+```yml
+
+server:
+  port: 9091
+
+spring:
+  profiles:
+    active: dev
+
+  application:
+    name: RESTAURANT-SERVICE
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application.local.yml:
+* port is common(in `application.yml`) so we removed it.
+* Removed spring application name which is common.
+```yml
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/restaurantdb
+    password: Diego#91spring
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application-dev.yml:
+* Here we are going to use k8s and it will have its own deployment files.
+* Thus remove spring , hibernate, datasource e.t.c
+* In dev, the url for eureka is: ` http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka`
+```yml
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: eureka-0
+  client:
+    service-url:
+      defaultZone:  http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/restaurantdb
+    password: Diego#91spring
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+```
+
+Next in `application.yml` we activate Profiles: with `spring.profile.active=dev`, thus only application-dev.yml will be picked up.
+
+#### Meaning of `http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka`
+
+* **http://** This specifies the protocol used for communication, in this case, HTTP.
+
+* **eureka-0**: This is the hostname of the Eureka server instance within the Kubernetes cluster. The "0" in the hostname suggests that it might be the first instance of the Eureka server. The specific naming convention may vary depending on the deployment configuration.
+
+* **eureka-service**: This is the name of the Kubernetes service associated with the Eureka server. Kubernetes services provide a stable endpoint for accessing pods within the cluster.
+
+* **default**: This is the namespace in which the Eureka service and pods are deployed. Kubernetes namespaces provide a way to isolate resources within a cluster.
+
+* **svc.cluster.local**: This is the domain suffix for Kubernetes services within the cluster.
+
+* **8761**: This is the port number on which the Eureka server is listening for incoming requests. By default, Eureka uses port 8761 for its HTTP-based communication.
+
+* **/eureka**: This is the path or endpoint within the Eureka server. In this case, it refers to the Eureka server's own API endpoint. Typically, this endpoint is used by Eureka clients (services) to register themselves and discover other services.
+
+* In summary, it **represents the Eureka server's endpoint within a Kubernetes cluster**, where services can register and discover other services using the Eureka service registry.
+
+Generate another jar file
+```sh
+mvn clean install
+```
+
+When building a JAR file with Maven, the commands `mvn clean package` and `mvn clean install` serve different purposes:
+
+1. **`mvn clean package`**:
+   - This command cleans the project (removes the `target` directory) and then packages the project into a JAR file.
+   - It compiles the source code, runs tests, and packages the compiled code into a JAR file located in the `target` directory.
+   - It does not install the JAR file into the local Maven repository.
+
+2. **`mvn clean install`**:
+   - This command also cleans the project and packages it into a JAR file.
+   - In addition to packaging, it installs the JAR file into the local Maven repository (`~/.m2/repository`).
+   - This makes the JAR file available for other projects on your local machine to use as a dependency.
+
+In summary, `mvn clean package` creates the JAR file, while `mvn clean install` creates the JAR file and installs it into the local Maven repository for use by other projects. If you only need the JAR file for the current project, `mvn clean package` is sufficient. If you want to use the JAR file as a dependency in other projects, you should use `mvn clean install`.
+
+If you have any more questions or need further clarification, feel free to ask!
+
+
+**Build the image with a new tag**:
+*  Open docker desktop then run below
+```sh
+docker build -t aduzona/food-delivery-restaurant-listing-service:latest .
+docker push aduzona/food-delivery-restaurant-listing-service:latest
+```
+
+
+### Food catalogue spring boot
+
+application.yml
+```yml
+server:
+  port: 9092
+
+logging:
+  level:
+    org.hibernate: DEBUG
+    org.hibernate.type: TRACE
+spring:
+  cache:
+    type: none
+  profiles:
+    active: dev
+  application:
+    name: FOOD-CATALOGUE-SERVICE
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application-local.yml
+```yml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/foodcataloguedb
+    password: Diego#91spring
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application-dev.yml
+```yml
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: eureka-0
+  client:
+    service-url:
+      defaultZone: http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/foodcataloguedb
+    password: Diego#91spring
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+```
+
+```sh
+mvn clean install
+```
+
+```sh
+docker build -t aduzona/food-delivery-restaurant-listing-service:latest .
+docker push aduzona/food-delivery-restaurant-listing-service:latest
+```
+
+### Order spring boot
+
+application.yml
+```yml
+server:
+  port: 9094
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: ORDER-SERVICE
+    data:
+    mongodb:
+      url: mongodb://localhost:27017/orderdb
+      host: localhost
+      port: 27017
+      database: orderdb
+      repositories:
+        enabled: true
+```
+
+application-local.yml
+```yml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/foodcataloguedb
+    password: Diego#91spring
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application-dev.yml
+```yml
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: eureka-0
+  client:
+    service-url:
+      defaultZone: http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka
+```
+
+```sh
+mvn clean install
+```
+
+```sh
+docker build -t aduzona/food-delivery-order-service:latest .
+docker push aduzona/food-delivery-order-service:latest
+```
+
+### User Info spring boot
+
+application.yml
+```yml
+server:
+  port: 9093
+
+spring:
+  profiles:
+    active: dev
+  application:
+    name: USER-SERVICE
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application-local.yml
+```yml
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: eureka-0
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/userdb
+    password: Diego#91spring
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    database-platform: org.hibernate.dialect.MySQL8Dialect
+```
+
+application-dev.yml
+```yml
+eureka:
+  client:
+    service-url:
+      defaultZone: http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka
+
+```
+
+```sh
+mvn clean install
+```
+
+```sh
+docker build -t aduzona/food-delivery-user-service:latest .
+docker push aduzona/food-delivery-user-service:latest
+```
+
+
+### Additions
+
+Now profiling is now complete
+With AWS load balancer also so that external clients should be able to interact with our backend  and frontend applications. for external users to be able to interact with our backend  and frontend applications we will need a gateway or a load balancer which provides an external IP to the whole echo system we have created. 
+
+Thus we will use ingress and load balancer for that.
+
+But to be able to seamlessly work with Eureka with the AWS load balancer, we would be needing two extra properties to be added in the development properties, so that we will not get `unknown host exception`.
+
+application-dev.yml
+```yml
+eureka:
+  instance:
+    preferIpAddress: true
+    hostname: eureka-0
+  client:
+    service-url:
+      defaultZone: http://eureka-0.eureka-service.default.svc.cluster.local:8761/eureka
+
+```
+
+This property `eureka.instance.preferIpAddress=true`  and `eureka.instance.hostname=eureka-0` do is when you load balance your application, you might find unknown host exception for `eureka-0` because there might be multiple ports and to figure out which IP address will alway be difficult for a load balancer, you will always add a `preferIPAddress: true`so that now your DNS resoluction from host name to IP is very easy beacuese of this customized spring boot property.
+
+Then run:
+
+```sh
+mvn clean install
+```
+
+then build and push for all backend containers.
+## AWS
+
+Deploy in AWS EKS cluster.
+cluster name: `aws-eks-cluster` 
+
+chololatey is windows equivalent of brew.
+
+### AWS EKS
+
+run: `aws sts get-caller-identity` you will see:
+* UserId
+* Account
+* Arn
+
+
+[Create EKS cluster](eksctl.io). A simple way to do this:
+
+```sh
+eksctl create cluster --name cluster name --region region name --nodegroup-name node name --node-type t3.medium --nodes 1
+```
+
+
+see pdf for details.
+
+e.g 
+run below
+```sh
+eksctl create cluster --name aws-eks-cluster --region eu-west-1 --nodegroup-name eks-cluster-node --node-type t3.medium --nodes 1
+```
+
+to delete:
+```sh
+eksctl delete cluster --name aws-eks-cluster --region eu-west-1
+```
+
+Go to ireland and search for `aws-eks-cluster`.
+
+when successful, it will generate kubeconfig file.
+
+#### Kubeconfig
+
+* The kubeconfig file is necessary for authenticating and accessing the EKS cluster.
+
+* By default, the kubeconfig file is updated with the necessary information to connect to the newly created EKS cluster, allowing you to use tools like kubectl to interact with the cluster from your local machine..
+
+Go to `users/aduzo/.kube/config`, then open config with notepad
+
+check how many nodes from local computer, you can see it:
+`kubectl get nodes`: you will see
+
+## Cloud Databases
+
+
+### What is AWS RDS and why to use it
+
+* We can Deploy Our DB also as a Deployment / POD 
+
+* But what if POD crashes?
+
+* Your data is lost and that's the task of DB - to manage data
+
+* So now u have following options
+
+  * Deployments with Persistent volumes - but not recommended bcz its for stateless apps
+  * Stateful set with PV - difficult to manage n create
+  * Best way is to segregate it completely outside the cluster 
+  * So use AWS RDS
+
+**What is AWS RDS**:
+
+* AWS RDS (Amazon Relational Database Service) is a fully managed database service provided by Amazon Web Services (AWS). It enables you to set up, operate, and scale relational databases in the cloud easily. 
+
+* By leveraging AWS RDS, you can **quickly provision database instances**, scale resources up or down as needed, and easily manage your databases using the AWS Management Console, command-line interface (CLI), or APIs. This allows you to focus on building applications without worrying about the underlying infrastructure and maintenance of your databases.
+
+* With AWS RDS, we have the option to choose from various popular relational database engines including
+  * **MySQL**
+  * PostgreSQL
+  * MariaDB
+  * Oracle
+  * Microsoft SQL Server
+
+
+
+Go to AWS RDS and create a relational database in `eu-west-1` for mysql.
+
+`/RDS/Create database`:
+* Standard create: Because we need custome options
+* MySQL
+* Templates: Free tier
+* Settings: DB instance identifier: write `mysql-db-instance`
+* Credential Settings:
+  * Master username: `admin`
+  * create and confirm password.
+  * Instance configuration remains same.
+* Connectivity:
+  * Don't connect to an EC2 compute resource
+  * VPC: default selected
+    * But you can create a vpc before creating RDS
+  * Public access: Yes, though this is not recommended
+  * VPC security group(firewall): Choose existing
+  * Existing VPC security groups: default
+  * Additional configuration: 
+    * Database port:3306
+* Database authentification
+  * Password authentification
+* Additional configuration
+  * initial dabase name:`restaurantdb`
+* create database
+
+Estimated monthly costs:
+
+The Amazon RDS Free Tier is available to you for 12 months. Each calendar month, the free tier will allow you to use the Amazon RDS resources listed below for free:
+* 750 hrs of Amazon RDS in a Single-AZ db.t2.micro, db.t3.micro or db.t4g.micro Instance.
+* 20 GB of General Purpose Storage (SSD).
+* 20 GB for automated backup storage and any user-initiated DB Snapshots.
+
+![Amazon_RDS MySQL](images/11_Amazon_RDS.png)
+
+Go to security group and modify it
+`mysql-db-instance/Connectivity & security/Security/VPC security groups`:
+default (sg-0...)
+Lets modify it to be able to be accessible from outside also.
+
+* Add Inbound rules:
+
+Traffic comes from outside to here.
+
+|Security Group rule ID| Type|Protocol|Port range|Source|Source IP|
+|---|---|---|---|---|---|
+|sgr-044...|Custom TCP| TCP | 3306| Anywhere IPv4| 0.0.0.0.0.0/0|
+
+From anywhere a query comes
+
+
+In mysql-db-instance: 
+
+You will see connectivity & Security, you will see `Endpoint & port`.
+You can connect to db using the endpoint.
+
+Connect anywhere to my DB instance. Using MySQL Workbench.
+
+![MySQL Workbench_Test Connection](images/12_Test_Amazon_RDS_Connection.png)
+
+Connection Name: AWS_RDS_Connection
+Hostname: mysql-db-instance.c7qy6u80qseu.eu-west-1.rds.amazonaws.com
+Username: admin
+Password: click Store in Vault... and add Password
+
+Test connection.
+
+now create all DBs reqired and populate our Data
+* Table Data Wizard
+To copy the content of one database table in one connection to another table in a different connection in MySQL Workbench, follow these steps:
+
+**Option 1: Export and Import via File**
+
+1. Export the Table from Source Connection
+
+* Connect to the source database.
+Right-click on the table you want to copy, and select "Table Data Export Wizard".
+* Choose the export location and save the file (e.g., as a .csv file).
+* Complete the wizard to export the data.
+2. Import the Table into Destination Connection
+
+* Switch to the destination connection.
+* Right-click on the destination database, and select "Table Data Import Wizard".
+* Choose the exported file (from step 1).
+* Map the columns if necessary and complete the wizard to import the data.
+
+
+Or just do it manually, 
+
+Please make sure the db names are same with application.yml  names for proper connection. 
+
+Copy the databases foodcataloguedb, restaurantdb,userdb. 
+
+Now go to application-dev.yml for all of them and change datasource.url e.g `userdb` from `jdbc:mysql://localhost:3306/userdb` to AWS Endpoint: `mysql-db-instance.c7um2qieq6sx.eu-west-1.rds.amazonaws.com/userdb`
+
+#### Database
+
+##### Restaurant
+
+```sql
+
+-- Use the database
+USE restaurantdb;
+
+-- Create the `restaurant` table
+CREATE TABLE IF NOT EXISTS restaurant (
+    id INT PRIMARY KEY,
+    address VARCHAR(255),
+    city VARCHAR(255),
+    name VARCHAR(255),
+    restaurant_description VARCHAR(255)
+);
+
+-- Insert data into the `restaurant` table
+INSERT INTO restaurant (id, address, city, name, restaurant_description)
+VALUES
+(1, '123 Main Street', 'Anytown', 'The Hungry Hut', 'A cozy family-owned restaurant offering a diverse menu of international cuisines. From sizzling steaks to mouthwatering pasta dishes, we have something to satisfy every craving'),
+(2, '456 Elm Avenue', 'Townsville', 'Spice Fusion', 'Experience the vibrant flavors of India at Spice Fusion. Our talented chefs blend traditional Indian spices with a modern twist, creating a culinary journey that will delight your taste buds'),
+(3, '789 Oak Lane', 'Metropolis', 'Seafood Paradise', 'Indulge in the freshest catch of the day at Seafood Paradise. With a prime waterfront location, our restaurant offers a wide selection of seafood delicacies, prepared with a touch of coastal flair'),
+(4, '321 Maple Road', 'Riverside', 'Tandoori Delight', 'Step into a slice of Italy at La Bella Trattoria. Our charming trattoria-style restaurant serves authentic Italian dishes made from scratch using the finest ingredients. Buon appetito!'),
+(5, '987 Pine Street', 'Lakeside', 'The Green Garden', 'Embrace healthy eating at The Green Garden. Our vegetarian and vegan-friendly restaurant showcases the best of plant-based cuisine, with colorful salads, hearty bowls, and nutritious smoothies.'),
+(6, '555 Chestnut Avenue', 'Belleview', 'Curry House', 'The Savory Bistro offers an exquisite dining experience with a focus on seasonal, locally sourced ingredients. Our talented chefs create artful plates that blend flavors from around the world, ensuring a memorable culinary adventure'),
+(7, '222 Walnut Street', 'Harborview', 'Saffron Sizzlers', 'Sushi Haven invites you to savor the art of Japanese cuisine. Our skilled sushi chefs meticulously craft an array of fresh sushi rolls, sashimi, and delectable tempura, all served in a modern and elegant setting'),
+(8, '777 Oakwood Drive', 'Summitville', 'Fireside Grill & Bar', 'Set against a rustic backdrop, Fireside Grill & Bar is the perfect spot for a cozy meal. Our menu features hearty grilled favorites, signature cocktails, and a warm ambiance that will make you feel right at home');
+
+```
+
+##### FoodCatalogue
+
+```sql
+-- Create the database
+CREATE DATABASE IF NOT EXISTS foodcataloguedb;
+
+-- Use the database
+USE foodcataloguedb;
+
+-- Create the `food_item` table
+CREATE TABLE IF NOT EXISTS food_item (
+    id INT PRIMARY KEY,
+    is_veg BIT(1),
+    item_description VARCHAR(255),
+    item_name VARCHAR(255),
+    price DECIMAL(10,2),
+    quantity INT,
+    restaurant_id INT
+);
+
+-- Insert data into the `food_item` table
+INSERT INTO food_item (id, is_veg, item_description, item_name, price, quantity, restaurant_id)
+VALUES
+(1, 1, 'Delicious vegetarian dish', 'Vegetable Biryani', 300.00, 0, 1),
+(2, 0, 'Succulent chicken in a creamy sauce', 'Butter Chicken', 310.00, 0, 1),
+(3, 1, 'Mouthwatering lentil curry', 'Dal Tadka', 350.00, 0, 2),
+(4, 0, 'Spicy and flavorful lamb curry', 'Rogan Josh', 315.00, 0, 2),
+(5, 1, 'Crispy and spicy potato patties', 'Aloo Tikki', 500.00, 0, 3),
+(6, 1, 'Paneer cubes marinated in tandoori spices', 'Tandoori Paneer Tikka', 900.00, 0, 3),
+(7, 0, 'Fragrant and aromatic rice dish', 'Chicken Biryani', 120.00, 0, 4),
+(8, 1, 'Mixed vegetable curry', 'Vegetable Korma', 110.00, 0, 4),
+(9, 0, 'Spicy and tangy shrimp curry', 'Goan Prawn Curry', 140.00, 0, 5),
+(10, 1, 'Fluffy Indian bread', 'Naan', 300.00, 0, 5),
+(11, 0, 'Chicken marinated in yogurt and spices', 'Chicken Tikka', 100.00, 0, 6),
+(12, 1, 'Aromatic rice pudding', 'Kheer', 600.00, 0, 6),
+(13, 1, 'Savory lentil donuts', 'Medu Vada', 400.00, 0, 7),
+(14, 0, 'Crispy crepe filled with spiced potatoes', 'Masala Dosa', 800.00, 0, 7),
+(15, 1, 'Refreshing yogurt-based drink', 'Mango Lassi', 500.00, 0, 8),
+(16, 0, 'Assorted Indian bread basket', 'Basket of Rotis', 700.00, 0, 8),
+(17, 1, 'Lentils cooked with mixed spices', 'Dal Fry', 350.00, 0, 1);
+
+```
+
+
+
+##### User Info
+
+```sql
+-- Create the database
+CREATE DATABASE IF NOT EXISTS userdb;
+
+-- Use the database
+USE userdb;
+
+-- Create the `user` table
+CREATE TABLE IF NOT EXISTS user (
+    user_id INT PRIMARY KEY,
+    address VARCHAR(255),
+    city VARCHAR(255),
+    user_name VARCHAR(255),
+    user_password VARCHAR(255)
+);
+
+-- Insert data into the `user` table
+INSERT INTO user (user_id, address, city, user_name, user_password)
+VALUES
+(1, 'somewhere Germany', 'Munich', 'Ife', 'pass123');
+
+```
+#### Change Datasource for different MySQL database
+
+Use Endpoint: `mysql-db-instance.****.region.rds.amazonaws.com`
+
+``` yml
+spring:
+  datasource:
+    url: mysql-db-instance.c7qy6u80qseu.eu-west-1.rds.amazonaws.com:3306/restaurantdb
+```
+
+same for other microservices:
+
+
+### Mongo Atlas DB
+
+How to configure NoSQL DB in AWS using MongoDB Atlas used for multi-cloud database.
+This is managed by Mongodb. See Udemy_Build_Deploy_End_to_End pdf for more information.
+
+
+Setup:
+*  Sign up and log in: Go to the MongoDB Atlas website 
+https://www.mongodb.com/cloud/atlas
+ and click on the "Try Free" or "Get Started Free" button. Create a new MongoDB Atlas account 
+or log in using your existing MongoDB account.
+* Create a new project: Once you're logged in, click on the "Create a New Project" button and 
+provide a name for your project. The project acts as a container for your MongoDB clusters 
+and related resources.
+* Build a cluster: Inside your project, click on the "Build a Cluster" button to create a new 
+MongoDB cluster. A cluster is a set of interconnected MongoDB instances that store your 
+data.
+* Whitelist IP addresses: By default, your cluster only allows connections from IP addresses on 
+the Atlas IP whitelist. Go to the "Network Access" tab and click on the "Add IP Address" button 
+to add your IP address or IP range to the whitelist. Alternatively, you can allow access from 
+anywhere (0.0.0.0/0), but this is not recommended for production environments.
+* Configure cluster settings , Wait for cluster creation n Connect to your cluster
+
+
+
+
+Create a Project
+* name:  Atlas-Project
+
+Create a cluster
+Build a Database;
+* M0 Free
+* Name: atlas-cluster
+* Provider AWS
+* Region: eu-west-1 ireland
+* Create Deployment
+
+Connect to atlass-cluster
+
+* Set up connection security:
+  * Username: admin
+  * password: 
+
+* Choose a connection method: 
+
+1. Add a connection IP address
+Your current IP address (217.84.1.154) has been added to enable local connectivity. Only an IP address you add to your Access List will be able to connect to your project's clusters. Add more later in 
+[Network Access](https://cloud.mongodb.com/v2/67448e0b9817d449a4d06856#/security/network/accessList)
+
+1. Create a database user
+A database user has been added to this project. Create another user later in 
+[Database Access](https://cloud.mongodb.com/v2/67448e0b9817d449a4d06856#/security/database/users)
+.
+You'll need your database user's credentials in the next step.
+
+
+* Connect to your application:
+  * Choose Compass
+  * I have MongoDB Compass installed
+  * copy Connection Spring: mongodb+srv://username:password@atlas-cluster.yumcd.mongodb.net/
+    * The above a the structure.
+  * Add the Connection String to my Mongo Compass.
+  * Create New Connection:
+
+## Kubernetes
+
+## Kubernetes Manifest files
+
+These are just blue print.
+
+4 deployment files for each of the backend applications plus Eureka making it 5.
+* restaurant
+* food-catalogue
+* user
+* order
+* Eureka
+
+Then Additional files:
+* configmap
+* Secrets
+
+Rememeber configmaps and secrets are used to hold the key-value pairs of my properties that is used for deployment
+
+Deployment is for pod.
+
+
+
+restaurant-manifest.yml
+Deployments:
+```yml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: restaurantapp
+  labels:
+    app: restaurantapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: restaurantapp
+  template:
+    metadata:
+      labels:
+        app: restaurantapp
+    spec:
+      containers:
+        - name: restaurantapp
+          image: aduzona/food-delivery-restaurant-listing-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 9091
+          env:
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: secret
+                  key: mysql-username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: secret
+                  key: mysql-password
+            - name: SPRING_DATASOURCE_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: configmap
+                  key: restaurantdb_url
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: restaurant-service
+spec:
+  ports:
+    - protocol: TCP
+      port: 9091
+      targetPort: 9091
+  selector:
+    app: restaurantapp
+```
+
+**3:20**
+
